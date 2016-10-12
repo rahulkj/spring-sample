@@ -3,11 +3,11 @@ set -e
 
 VERSION=`cat version/number`
 
-cd metrics-repo
+cd git-repo
 
 mvn -v
 
 mvn versions:set -DnewVersion=$VERSION
 mvn clean install
 
-mv target/metrics-*.jar ../build/
+mv target/*.jar ../build/
