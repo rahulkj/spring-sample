@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: rjain/buildbox}
+
+inputs:
+  - name: git-repo
+  - name: release
+
+run:
+  path: git-repo/ci/tasks/cf-deployment.sh
+
+params:
+  API_ENDPOINT:
+  USERNAME:
+  PASSWORD:
+  ORG:
+  SPACE:
+  HOST:
+  APP_NAME:
+  ARTIFACT_PATH: release/*.jar

@@ -1,0 +1,113 @@
+---
+resources:
+- name: git-repo
+  type: git
+  source:
+    uri: https://github.com/rahul-kj/spring-sample.git
+    branch: master
+
+- name: version
+  type: semver
+  source:
+    bucket: {{s3-bucket-name}}
+    key: current-version
+    access_key_id: {{s3-access-key-id}}
+    secret_access_key: {{s3-secret-access-key}}
+    initial_version: 1.0.0
+
+- name: release
+  type: s3
+  source:
+    bucket: {{s3-bucket-name}}
+    regexp: spring-sample-(.*).jar
+    access_key_id: {{s3-access-key-id}}
+    secret_access_key: {{s3-secret-access-key}}
+
+jobs:
+- name: compile
+  plan:
+  - get: git-repo
+    trigger: true
+  - task: compile
+    file: git-repo/ci/tasks/build.yml
+
+- name: generate-artifact
+  serial_groups: [version]
+  plan:
+  - get: git-repo
+    passed: [compile]
+    trigger: true
+  - get: version
+    params: {bump: major}
+  - task: build-artifact
+    file: git-repo/ci/tasks/build-artifact.yml
+  - put: release
+    params: {file: build/spring-sample-*.jar}
+  - put: version
+    params: {file: version/number}
+
+- name: acceptance-tests
+  plan:
+  - aggregate:
+    - get: release
+      passed: [generate-artifact]
+      trigger: true
+    - get: git-repo
+      passed: [generate-artifact]
+      trigger: true
+  - task: deploy-to-dev
+    file: git-repo/ci/tasks/cf-deployment.yml
+    config:
+      params:
+        API_ENDPOINT: {{API_ENDPOINT}}
+        USERNAME: {{CF_USERNAME}}
+        PASSWORD: {{CF_PASSWORD}}
+        ORG: {{CF_DEV_ORG}}
+        SPACE: {{CF_DEV_SPACE}}
+        HOST: {{HOST_DEV}}
+        APP_NAME: {{APP_NAME}}
+  - task: cats
+    file: git-repo/ci/tasks/cats.yml
+    config:
+      params:
+        APP_URL: http://metrics-dev.cfapps.io
+
+- name: promote-to-uat
+  plan:
+  - aggregate:
+    - get: release
+      passed: [acceptance-tests]
+      trigger: true
+    - get: git-repo
+      passed: [acceptance-tests]
+      trigger: true
+  - task: deploy-to-uat
+    file: git-repo/ci/tasks/cf-deployment.yml
+    config:
+      params:
+        API_ENDPOINT: {{API_ENDPOINT}}
+        USERNAME: {{CF_USERNAME}}
+        PASSWORD: {{CF_PASSWORD}}
+        ORG: {{CF_STG_ORG}}
+        SPACE: {{CF_STG_SPACE}}
+        HOST: {{HOST_STAGING}}
+        APP_NAME: {{APP_NAME}}
+- name: manual-deploy-to-prod
+  serial: true
+  plan:
+  - aggregate:
+    - get: release
+      passed: [promote-to-uat]
+    - get: git-repo
+      passed: [promote-to-uat]
+  - task: deploy-to-prod
+    file: git-repo/ci/tasks/cf-deployment.yml
+    config:
+      params:
+        API_ENDPOINT: {{API_ENDPOINT}}
+        USERNAME: {{CF_USERNAME}}
+        PASSWORD: {{CF_PASSWORD}}
+        ORG: {{CF_PROD_ORG}}
+        SPACE: {{CF_PROD_SPACE}}
+        HOST: {{HOST_PROD}}
+        APP_NAME: {{APP_NAME}}
