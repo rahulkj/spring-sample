@@ -57,20 +57,18 @@ jobs:
       trigger: true
   - task: deploy-to-dev
     file: git-repo/ci/tasks/cf-deployment.yml
-    config:
-      params:
-        API_ENDPOINT: {{API_ENDPOINT}}
-        USERNAME: {{CF_USERNAME}}
-        PASSWORD: {{CF_PASSWORD}}
-        ORG: {{CF_DEV_ORG}}
-        SPACE: {{CF_DEV_SPACE}}
-        HOST: {{HOST_DEV}}
-        APP_NAME: {{APP_NAME}}
+    params:
+      API_ENDPOINT: {{API_ENDPOINT}}
+      USERNAME: {{CF_USERNAME}}
+      PASSWORD: {{CF_PASSWORD}}
+      ORG: {{CF_DEV_ORG}}
+      SPACE: {{CF_DEV_SPACE}}
+      HOST: {{HOST_DEV}}
+      APP_NAME: {{APP_NAME}}
   - task: cats
     file: git-repo/ci/tasks/cats.yml
-    config:
-      params:
-        APP_URL: http://metrics-dev.cfapps.io
+    params:
+      APP_URL: {{DEV_APP_URL}}
 
 - name: promote-to-uat
   plan:
@@ -83,15 +81,15 @@ jobs:
       trigger: true
   - task: deploy-to-uat
     file: git-repo/ci/tasks/cf-deployment.yml
-    config:
-      params:
-        API_ENDPOINT: {{API_ENDPOINT}}
-        USERNAME: {{CF_USERNAME}}
-        PASSWORD: {{CF_PASSWORD}}
-        ORG: {{CF_STG_ORG}}
-        SPACE: {{CF_STG_SPACE}}
-        HOST: {{HOST_STAGING}}
-        APP_NAME: {{APP_NAME}}
+    params:
+      API_ENDPOINT: {{API_ENDPOINT}}
+      USERNAME: {{CF_USERNAME}}
+      PASSWORD: {{CF_PASSWORD}}
+      ORG: {{CF_STG_ORG}}
+      SPACE: {{CF_STG_SPACE}}
+      HOST: {{HOST_STAGING}}
+      APP_NAME: {{APP_NAME}}
+      
 - name: manual-deploy-to-prod
   serial: true
   plan:
@@ -102,12 +100,11 @@ jobs:
       passed: [promote-to-uat]
   - task: deploy-to-prod
     file: git-repo/ci/tasks/cf-deployment.yml
-    config:
-      params:
-        API_ENDPOINT: {{API_ENDPOINT}}
-        USERNAME: {{CF_USERNAME}}
-        PASSWORD: {{CF_PASSWORD}}
-        ORG: {{CF_PROD_ORG}}
-        SPACE: {{CF_PROD_SPACE}}
-        HOST: {{HOST_PROD}}
-        APP_NAME: {{APP_NAME}}
+    params:
+      API_ENDPOINT: {{API_ENDPOINT}}
+      USERNAME: {{CF_USERNAME}}
+      PASSWORD: {{CF_PASSWORD}}
+      ORG: {{CF_PROD_ORG}}
+      SPACE: {{CF_PROD_SPACE}}
+      HOST: {{HOST_PROD}}
+      APP_NAME: {{APP_NAME}}
